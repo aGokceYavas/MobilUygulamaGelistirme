@@ -1,50 +1,58 @@
-# Welcome to your Expo app 👋
+Odaklanma Takibi ve Raporlama Uygulaması
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+[cite_start]**Ders:** Sakarya Üniversitesi - BSM 447 Mobil Uygulama Geliştirme Dersi [cite: 2, 3, 4]  
+**Dönem:** 2025-2026 Güz  
+**Durum:** Geliştirme Aşamasında 🚧
 
-## Get started
+Proje Hakkında
+[cite_start]Bu proje, günümüzün en büyük problemlerinden biri olan **dijital dikkat dağınıklığıyla** mücadele etmek için geliştirilmektedir[cite: 7]. [cite_start]Uygulamanın temel amacı; kullanıcının belirlediği kategorilerde (Ders, Kodlama vb.) odaklanma seansları başlatması ve süreç boyunca uygulamadan çıkıp çıkmadığını (dikkat dağınıklığını) takip ederek raporlamasıdır[cite: 8, 9].
 
-1. Install dependencies
+Özellikler (MVP)
+[cite_start]Proje tamamlandığında aşağıdaki özellikleri içerecektir[cite: 10]:
 
-   ```bash
-   npm install
-   ```
+* [cite_start]**Odaklanma Sayacı:** Varsayılan 25 dakikalık (Pomodoro) geri sayım aracı[cite: 17].
+* [cite_start]**Kategori Yönetimi:** Seansı başlatmadan önce "Ders", "Proje", "Kitap Okuma" gibi etiketleme imkanı[cite: 19].
+* [cite_start]**Akıllı Takip (Smart Detection):** Kullanıcı sayaç çalışırken uygulamayı arka plana atarsa (başka uygulamaya geçerse), bu durum "dikkat dağınıklığı" olarak kaydedilir ve sayaç duraklatılır[cite: 23].
+Detaylı Raporlar:**
+  [cite_start]Günlük ve toplam odaklanma süreleri[cite: 28, 30].
+  [cite_start]Haftalık odaklanma grafiği (Bar Chart)[cite: 34].
+  [cite_start]Kategori dağılım grafiği (Pie Chart)[cite: 35].
 
-2. Start the app
+Kullanılan Teknolojiler
+[cite_start]**Framework:** React Native (Expo) [cite: 5]
+[cite_start]**Navigasyon:** React Native Navigation (Tab & Stack) [cite: 12]
+[cite_start]**Veri Görselleştirme:** React Native Chart Kit [cite: 32]
+[cite_start]**Veri Kayıt:** Async Storage (Yerel Veritabanı) [cite: 26]
+[cite_start]**Durum Kontrolü:** AppState API [cite: 21]
 
-   ```bash
-   npx expo start
-   ```
+Kurulum ve Çalıştırma
 
-In the output, you'll find options to open the app in a
+Projeyi kendi bilgisayarınızda çalıştırmak için:
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+1.  **Repoyu klonlayın:**
+    ```bash
+    git clone [https://github.com/KULLANICI_ADINIZ/OdaklanmaTakibi.git](https://github.com/KULLANICI_ADINIZ/OdaklanmaTakibi.git)
+    cd OdaklanmaTakibi
+    ```
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+2.  **Paketleri yükleyin:**
+    ```bash
+    npm install
+    ```
 
-## Get a fresh project
+3.  **Uygulamayı başlatın:**
+    ```bash
+    npx expo start
+    ```
+    [cite_start]Terminalde çıkan QR kodu **Expo Go** uygulaması ile okutarak test edebilirsiniz[cite: 37].
 
-When you're ready, run:
+Proje Yol Haritası (To-Do)
+- [x] Proje oluşturulması ve konfigürasyon (Expo)
+- [x] Gerekli kütüphanelerin eklenmesi (Navigation, Charts)
+- [ ] Ana Sayfa (Timer) arayüz tasarımı
+- [ ] AppState ile background durumunun yakalanması
+- [ ] Raporlar ekranı ve grafik entegrasyonu
+- [ ] README ve Dokümantasyonun güncellenmesi
 
-```bash
-npm run reset-project
-```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+---
+*Bu proje BSM 447 dersi dönem ödevi kapsamında geliştirilmektedir.*
