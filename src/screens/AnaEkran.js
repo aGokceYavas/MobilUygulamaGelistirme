@@ -1,41 +1,247 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useEffect, useRef, useState } from 'react';
+import {
+  Alert,
+  AppState,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  Vibration,
+  View
+} from 'react-native';
 
 export default function AnaEkran() {
+  // --- STATE TANIMLARI (YENİ İSİMLERLE) ---
+  const [kalanSure, setKalanSure] = useState(1500); // Varsayılan 25 dk
+  const [odaklanmaAktif, setOdaklanmaAktif] = useState(false); // Eski 'aktifMi'
+  const [secilenKategori, setSecilenKategori] = useState('Ders');
+  
+  // Eski 'kacKereBakti' yerine daha akademik bir isim:
+  const [odakKesintisi, setOdakKesintisi] = useState(0); 
+  
+  const appStateRef = useRef(AppState.currentState);
+
+  const [kategoriler, setKategoriler] = useState(['Ders', 'Kodlama', 'Kitap']);
+  const [modalAcik, setModalAcik] = useState(false);
+  const [yeniKategoriAdi, setYeniKategoriAdi] = useState('');
+
+  // --- 3. ADIM: DİKKAT DAĞINIKLIĞI TAKİBİ ---
+  useEffect(() => {
+    const durumDinleyicisi = AppState.addEventListener('change', (yeniDurum) => {
+      
+      if (
+        appStateRef.current === 'active' && 
+        yeniDurum.match(/inactive|background/) &&
+        odaklanmaAktif // İsim değişti
+      ) {
+        // Sayacı durdur
+        setOdaklanmaAktif(false);
+        
+        // Kesinti sayısını arttır
+        setOdakKesintisi((eskiSayi) => eskiSayi + 1);
+        
+        Vibration.vibrate(500);
+      }
+
+      appStateRef.current = yeniDurum;
+    });
+
+    return () => {
+      durumDinleyicisi.remove();
+    };
+  }, [odaklanmaAktif]); // İsim değişti
+
+  // --- 2. ADIM: SAYAÇ MOTORU ---
+  useEffect(() => {
+    let zamanlayici = null;
+
+    if (odaklanmaAktif && kalanSure > 0) {
+      zamanlayici = setInterval(() => {
+        setKalanSure((oncekiSure) => oncekiSure - 1);
+      }, 1000);
+    } else if (kalanSure === 0) {
+      // SÜRE BİTTİ
+      setOdaklanmaAktif(false);
+      clearInterval(zamanlayici);
+      Vibration.vibrate(1000); 
+
+      Alert.alert(
+        "Tebrikler! 🎉", 
+        `${secilenKategori} seansını başarıyla tamamladın.\n\n⚠️ Toplam Odak Kesintisi: ${odakKesintisi}`,
+        [{ text: "Tamam", onPress: () => setOdakKesintisi(0) }]
+      );
+    }
+
+    return () => {
+      if (zamanlayici) clearInterval(zamanlayici);
+    };
+  }, [odaklanmaAktif, kalanSure]);
+
+  // --- DİĞER FONKSİYONLAR ---
+
+  const sureyiFormatla = (toplamSaniye) => {
+    const dk = Math.floor(toplamSaniye / 60);
+    const sn = toplamSaniye % 60;
+    return `${dk}:${sn < 10 ? '0' : ''}${sn}`;
+  };
+
+  const sureyiDegistir = (miktar) => {
+    if (odaklanmaAktif) {
+      Alert.alert("Uyarı", "Süre değişimi için önce odaklanmayı durdurun.");
+      return;
+    }
+    const yeniSure = kalanSure + miktar;
+    if (yeniSure >= 0) setKalanSure(yeniSure);
+  };
+
+  const hizliSec = (dakika) => {
+    if (odaklanmaAktif) {
+      Alert.alert("Uyarı", "Süre değişimi için önce odaklanmayı durdurun.");
+      return;
+    }
+    setKalanSure(dakika * 60);
+  };
+
+  const kategoriEkle = () => {
+    if (yeniKategoriAdi.trim().length === 0) {
+      Alert.alert("Hata", "Kategori ismi boş olamaz.");
+      return;
+    }
+    setKategoriler([...kategoriler, yeniKategoriAdi]);
+    setYeniKategoriAdi('');
+    setSecilenKategori(yeniKategoriAdi);
+    setModalAcik(false);
+  };
+  
+  const sifirla = () => {
+    setOdaklanmaAktif(false);
+    setKalanSure(1500);
+    setOdakKesintisi(0);
+  };
+
   return (
     <View style={styles.container}>
-      <Text style={styles.baslik}>Odaklanma Sayacı</Text>
       
-      {/* Basit bir sayaç görüntüsü */}
-      <Text style={styles.sayacText}>25:00</Text> 
-      
-      <Text style={styles.bilgiText}>
-        ("Başlat" butonu buraya eklenecek)
-      </Text>
+      {/* ÜST ALAN */}
+      <View style={styles.ustAlan}>
+        <Text style={styles.etiket}>Kategori Seç:</Text>
+        <View style={{ height: 50 }}> 
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ alignItems: 'center' }}>
+            {kategoriler.map((kat, index) => (
+              <TouchableOpacity 
+                key={index}
+                style={[styles.kategoriButon, secilenKategori === kat && styles.seciliKategoriButon]}
+                onPress={() => setSecilenKategori(kat)}
+              >
+                <Text style={[styles.kategoriYazi, secilenKategori === kat && styles.seciliKategoriYazi]}>{kat}</Text>
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity 
+              style={[styles.kategoriButon, { backgroundColor: '#e8f5e9', borderColor: '#4CAF50' }]}
+              onPress={() => setModalAcik(true)}
+            >
+              <Ionicons name="add" size={20} color="#4CAF50" />
+            </TouchableOpacity>
+          </ScrollView>
+        </View>
+      </View>
+
+      {/* ORTA ALAN */}
+      <View style={styles.ortaAlan}>
+        <View style={styles.sayacSatiri}>
+          <TouchableOpacity style={styles.ayarButonu} onPress={() => sureyiDegistir(-60)}>
+            <Ionicons name="remove" size={32} color="black" />
+          </TouchableOpacity>
+          
+          <Text style={styles.sayacYazi}>{sureyiFormatla(kalanSure)}</Text>
+          
+          <TouchableOpacity style={styles.ayarButonu} onPress={() => sureyiDegistir(60)}>
+            <Ionicons name="add" size={32} color="black" />
+          </TouchableOpacity>
+        </View>
+        
+        <View style={styles.hizliSecimSatiri}>
+          {[15, 30, 45, 60].map((dk) => (
+            <TouchableOpacity key={dk} style={styles.hizliButon} onPress={() => hizliSec(dk)}>
+              <Text style={styles.hizliButonYazi}>{dk}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        
+        {odakKesintisi > 0 && (
+          <Text style={{ marginTop: 20, color: '#d32f2f', fontWeight: 'bold' }}>
+            ⚠️ {odakKesintisi} kez odak kesintisi!
+          </Text>
+        )}
+      </View>
+
+      {/* ALT ALAN */}
+      <View style={styles.altAlan}>
+        <TouchableOpacity 
+          style={[styles.anaButon, odaklanmaAktif ? styles.durdurRenk : styles.baslatRenk]}
+          onPress={() => setOdaklanmaAktif(!odaklanmaAktif)}
+        >
+          <Text style={styles.anaButonYazi}>{odaklanmaAktif ? 'DURAKLAT' : 'BAŞLAT'}</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={sifirla} style={styles.sifirlaLink}>
+          <Text style={styles.sifirlaYazi}>Sıfırla</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* MODAL (Değişmedi) */}
+      <Modal animationType="slide" transparent={true} visible={modalAcik} onRequestClose={() => setModalAcik(false)}>
+        <View style={styles.modalArkaPlan}>
+          <View style={styles.modalKutu}>
+            <Text style={styles.modalBaslik}>Yeni Kategori Ekle</Text>
+            <TextInput 
+              style={styles.input} placeholder="Örn: Spor, Proje..." 
+              value={yeniKategoriAdi} onChangeText={setYeniKategoriAdi} autoFocus={true} 
+            />
+            <View style={styles.modalButonlar}>
+              <TouchableOpacity style={[styles.modalBtn, { backgroundColor: '#ccc' }]} onPress={() => setModalAcik(false)}>
+                <Text>İptal</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.modalBtn, { backgroundColor: '#4CAF50' }]} onPress={kategoriEkle}>
+                <Text style={{ color: '#fff', fontWeight: 'bold' }}>Ekle</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  baslik: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    color: '#333'
-  },
-  sayacText: {
-    fontSize: 50,
-    fontWeight: 'bold',
-    color: '#2c3e50'
-  },
-  bilgiText: {
-    marginTop: 20,
-    color: 'gray',
-    fontStyle: 'italic'
-  }
+  container: { flex: 1, backgroundColor: '#fff', paddingTop: 50, paddingHorizontal: 20, justifyContent: 'space-between', paddingBottom: 20 },
+  ustAlan: { height: '20%', justifyContent: 'center' },
+  etiket: { fontSize: 16, color: 'gray', marginBottom: 10, textAlign: 'center' },
+  kategoriButon: { paddingVertical: 8, paddingHorizontal: 16, backgroundColor: '#f0f0f0', borderRadius: 20, marginRight: 10, borderWidth: 1, borderColor: '#ddd', height: 40, justifyContent: 'center' },
+  seciliKategoriButon: { backgroundColor: '#333', borderColor: '#333' },
+  kategoriYazi: { color: '#333' },
+  seciliKategoriYazi: { color: '#fff', fontWeight: 'bold' },
+  ortaAlan: { height: '50%', justifyContent: 'center', alignItems: 'center' },
+  sayacSatiri: { flexDirection: 'row', alignItems: 'center', marginBottom: 30 },
+  sayacYazi: { fontSize: 60, fontWeight: 'bold', color: '#2c3e50', marginHorizontal: 20, fontVariant: ['tabular-nums'] },
+  ayarButonu: { width: 50, height: 50, borderRadius: 25, backgroundColor: '#e0e0e0', justifyContent: 'center', alignItems: 'center' },
+  hizliSecimSatiri: { flexDirection: 'row' },
+  hizliButon: { backgroundColor: '#e3f2fd', paddingVertical: 10, paddingHorizontal: 15, borderRadius: 10, marginHorizontal: 5 },
+  hizliButonYazi: { color: '#1565c0', fontWeight: 'bold' },
+  altAlan: { height: '20%', justifyContent: 'flex-end', alignItems: 'center' },
+  anaButon: { width: '100%', paddingVertical: 15, borderRadius: 12, alignItems: 'center' },
+  baslatRenk: { backgroundColor: '#4caf50' },
+  durdurRenk: { backgroundColor: '#f44336' },
+  anaButonYazi: { color: '#fff', fontSize: 20, fontWeight: 'bold', letterSpacing: 1 },
+  sifirlaLink: { marginTop: 15, padding: 10 },
+  sifirlaYazi: { color: 'gray', textDecorationLine: 'underline' },
+  modalArkaPlan: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
+  modalKutu: { width: '80%', backgroundColor: '#fff', padding: 20, borderRadius: 15, elevation: 5 },
+  modalBaslik: { fontSize: 18, fontWeight: 'bold', marginBottom: 15, textAlign: 'center' },
+  input: { borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 10, marginBottom: 20 },
+  modalButonlar: { flexDirection: 'row', justifyContent: 'space-between' },
+  modalBtn: { flex: 1, padding: 10, borderRadius: 8, alignItems: 'center', marginHorizontal: 5 }
 });
