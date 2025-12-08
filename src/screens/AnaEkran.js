@@ -12,14 +12,14 @@ import {
   Vibration,
   View
 } from 'react-native';
+// Veri tabanı için kütüphaneyi çağırıyoruz
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function AnaEkran() {
-  // --- STATE TANIMLARI (YENİ İSİMLERLE) ---
+  // --- STATE TANIMLARI ---
   const [kalanSure, setKalanSure] = useState(1500); // Varsayılan 25 dk
-  const [odaklanmaAktif, setOdaklanmaAktif] = useState(false); // Eski 'aktifMi'
+  const [odaklanmaAktif, setOdaklanmaAktif] = useState(false);
   const [secilenKategori, setSecilenKategori] = useState('Ders');
-  
-  // Eski 'kacKereBakti' yerine daha akademik bir isim:
   const [odakKesintisi, setOdakKesintisi] = useState(0); 
   
   const appStateRef = useRef(AppState.currentState);
@@ -28,49 +28,80 @@ export default function AnaEkran() {
   const [modalAcik, setModalAcik] = useState(false);
   const [yeniKategoriAdi, setYeniKategoriAdi] = useState('');
 
-  // --- 3. ADIM: DİKKAT DAĞINIKLIĞI TAKİBİ ---
+  // --- YENİ EKLENEN FONKSİYON: VERİYİ HAFIZAYA KAYDETME ---
+  const veriyiKaydet = async () => {
+    try {
+      // 1. Kaydedilecek yeni veriyi hazırla (Obje olarak)
+      const yeniKayit = {
+        id: Date.now(), // Benzersiz bir numara (şu anki zaman)
+        tarih: new Date().toISOString().split('T')[0], // "2025-12-08" formatında tarih
+        kategori: secilenKategori,
+        sure: 1500, // Şimdilik varsayılan 25 dk (ileride dinamik yapacağız)
+        kesinti: odakKesintisi
+      };
+
+      // 2. Telefondaki eski kayıtları çek
+      const eskiVerilerJson = await AsyncStorage.getItem('odaklanmaVerileri');
+      let eskiVeriler = eskiVerilerJson ? JSON.parse(eskiVerilerJson) : [];
+
+      // 3. Eski verilerin üzerine yenisini ekle
+      const guncelVeriler = [...eskiVeriler, yeniKayit];
+
+      // 4. Tekrar telefona kaydet
+      await AsyncStorage.setItem('odaklanmaVerileri', JSON.stringify(guncelVeriler));
+
+      // Test amaçlı konsola yazdıralım (Ctrl+J ile terminalde görebilirsin)
+      console.log("✅ Veri Başarıyla Kaydedildi:", yeniKayit);
+      console.log("📂 Toplam Kayıt Sayısı:", guncelVeriler.length);
+
+    } catch (error) {
+      console.log("❌ Kaydetme hatası:", error);
+      Alert.alert("Hata", "Veri kaydedilirken bir sorun oluştu.");
+    }
+  };
+
+  // --- DİKKAT DAĞINIKLIĞI TAKİBİ ---
   useEffect(() => {
     const durumDinleyicisi = AppState.addEventListener('change', (yeniDurum) => {
-      
       if (
         appStateRef.current === 'active' && 
         yeniDurum.match(/inactive|background/) &&
-        odaklanmaAktif // İsim değişti
+        odaklanmaAktif
       ) {
-        // Sayacı durdur
         setOdaklanmaAktif(false);
-        
-        // Kesinti sayısını arttır
         setOdakKesintisi((eskiSayi) => eskiSayi + 1);
-        
         Vibration.vibrate(500);
       }
-
       appStateRef.current = yeniDurum;
     });
+    return () => { durumDinleyicisi.remove(); };
+  }, [odaklanmaAktif]);
 
-    return () => {
-      durumDinleyicisi.remove();
-    };
-  }, [odaklanmaAktif]); // İsim değişti
-
-  // --- 2. ADIM: SAYAÇ MOTORU ---
+  // --- SAYAÇ MOTORU ---
   useEffect(() => {
     let zamanlayici = null;
 
     if (odaklanmaAktif && kalanSure > 0) {
+      // Sayaç aktif ve süre varsa azalt
       zamanlayici = setInterval(() => {
         setKalanSure((oncekiSure) => oncekiSure - 1);
       }, 1000);
-    } else if (kalanSure === 0) {
-      // SÜRE BİTTİ
+      
+    } else if (odaklanmaAktif && kalanSure === 0) { 
+      // DÜZELTME: && odaklanmaAktif eklendi!
+      // Sadece "Aktifken" 0'a düşerse bitiş işlemlerini yap.
+      // Eğer zaten durmuşsa ve 0'daysa (Sıfırla denmemişse) tekrar tekrar girme.
+      
       setOdaklanmaAktif(false);
       clearInterval(zamanlayici);
       Vibration.vibrate(1000); 
+      
+      // Kaydet ve Uyarı Ver
+      veriyiKaydet(); 
 
       Alert.alert(
         "Tebrikler! 🎉", 
-        `${secilenKategori} seansını başarıyla tamamladın.\n\n⚠️ Toplam Odak Kesintisi: ${odakKesintisi}`,
+        `${secilenKategori} seansını tamamladın.\nVerilerin kaydedildi.`,
         [{ text: "Tamam", onPress: () => setOdakKesintisi(0) }]
       );
     }
@@ -81,7 +112,6 @@ export default function AnaEkran() {
   }, [odaklanmaAktif, kalanSure]);
 
   // --- DİĞER FONKSİYONLAR ---
-
   const sureyiFormatla = (toplamSaniye) => {
     const dk = Math.floor(toplamSaniye / 60);
     const sn = toplamSaniye % 60;
@@ -89,31 +119,39 @@ export default function AnaEkran() {
   };
 
   const sureyiDegistir = (miktar) => {
-    if (odaklanmaAktif) {
-      Alert.alert("Uyarı", "Süre değişimi için önce odaklanmayı durdurun.");
-      return;
-    }
+    if (odaklanmaAktif) { Alert.alert("Uyarı", "Önce durdurun."); return; }
     const yeniSure = kalanSure + miktar;
     if (yeniSure >= 0) setKalanSure(yeniSure);
   };
 
   const hizliSec = (dakika) => {
-    if (odaklanmaAktif) {
-      Alert.alert("Uyarı", "Süre değişimi için önce odaklanmayı durdurun.");
-      return;
-    }
+    if (odaklanmaAktif) { Alert.alert("Uyarı", "Önce durdurun."); return; }
     setKalanSure(dakika * 60);
   };
 
-  const kategoriEkle = () => {
+  // --- KATEGORİ EKLEME FONKSİYONU (GÜNCELLENDİ: ARTIK HAFIZAYA KAYDEDİYOR) ---
+  const kategoriEkle = async () => {
     if (yeniKategoriAdi.trim().length === 0) {
       Alert.alert("Hata", "Kategori ismi boş olamaz.");
       return;
     }
-    setKategoriler([...kategoriler, yeniKategoriAdi]);
+
+    // 1. Yeni listeyi oluştur
+    const yeniListe = [...kategoriler, yeniKategoriAdi];
+    
+    // 2. State'i güncelle (Ekranda görünsün)
+    setKategoriler(yeniListe);
     setYeniKategoriAdi('');
     setSecilenKategori(yeniKategoriAdi);
     setModalAcik(false);
+
+    // 3. YENİ LİSTEYİ TELEFONA KAYDET (AsyncStorage)
+    try {
+      await AsyncStorage.setItem('kategoriListesi', JSON.stringify(yeniListe));
+      console.log("📂 Kategori Listesi Güncellendi:", yeniListe);
+    } catch (error) {
+      console.log("❌ Kategori kaydedilemedi:", error);
+    }
   };
   
   const sifirla = () => {
@@ -124,7 +162,6 @@ export default function AnaEkran() {
 
   return (
     <View style={styles.container}>
-      
       {/* ÜST ALAN */}
       <View style={styles.ustAlan}>
         <Text style={styles.etiket}>Kategori Seç:</Text>
@@ -155,9 +192,7 @@ export default function AnaEkran() {
           <TouchableOpacity style={styles.ayarButonu} onPress={() => sureyiDegistir(-60)}>
             <Ionicons name="remove" size={32} color="black" />
           </TouchableOpacity>
-          
           <Text style={styles.sayacYazi}>{sureyiFormatla(kalanSure)}</Text>
-          
           <TouchableOpacity style={styles.ayarButonu} onPress={() => sureyiDegistir(60)}>
             <Ionicons name="add" size={32} color="black" />
           </TouchableOpacity>
@@ -192,7 +227,7 @@ export default function AnaEkran() {
         </TouchableOpacity>
       </View>
 
-      {/* MODAL (Değişmedi) */}
+      {/* MODAL */}
       <Modal animationType="slide" transparent={true} visible={modalAcik} onRequestClose={() => setModalAcik(false)}>
         <View style={styles.modalArkaPlan}>
           <View style={styles.modalKutu}>
