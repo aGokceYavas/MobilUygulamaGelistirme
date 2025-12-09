@@ -17,6 +17,7 @@ import {
 export default function AnaEkran() {
   // state tanımları
   const [kalanSure, setKalanSure] = useState(1500); 
+  const [baslangicSuresi, setBaslangicSuresi] = useState(1500); // YENİ: Başlangıç süresini tutuyoruz
   const [odaklanmaAktif, setOdaklanmaAktif] = useState(false);
   const [secilenKategori, setSecilenKategori] = useState('Ders');
   const [odakKesintisi, setOdakKesintisi] = useState(0); 
@@ -27,14 +28,29 @@ export default function AnaEkran() {
   const [modalAcik, setModalAcik] = useState(false);
   const [yeniKategoriAdi, setYeniKategoriAdi] = useState('');
 
-  // veriyi kaydet
+  // 4. GÜN EKLENTİSİ: uygulama açılınca hafızayı oku
+  useEffect(() => {
+    const verileriYukle = async () => {
+      try {
+        const kayitliKategoriler = await AsyncStorage.getItem('kategoriListesi');
+        if (kayitliKategoriler !== null) {
+          setKategoriler(JSON.parse(kayitliKategoriler));
+        }
+      } catch (error) {
+        console.log("yükleme hatası", error);
+      }
+    };
+    verileriYukle();
+  }, []);
+
+  // veriyi kaydet (DÜZELTİLDİ)
   const veriyiKaydet = async () => {
     try {
       const yeniKayit = {
         id: Date.now(),
         tarih: new Date().toISOString().split('T')[0],
         kategori: secilenKategori,
-        sure: 1500,
+        sure: baslangicSuresi, // ARTIK SABİT DEĞİL, GERÇEK SÜRE
         kesinti: odakKesintisi
       };
 
@@ -44,7 +60,7 @@ export default function AnaEkran() {
       const guncelVeriler = [...eskiVeriler, yeniKayit];
 
       await AsyncStorage.setItem('odaklanmaVerileri', JSON.stringify(guncelVeriler));
-      console.log("kayıt başarılı", yeniKayit);
+      console.log("seans kaydedildi", yeniKayit);
 
     } catch (error) {
       console.log("hata", error);
@@ -106,15 +122,24 @@ export default function AnaEkran() {
   const sureyiDegistir = (miktar) => {
     if (odaklanmaAktif) { Alert.alert("Uyarı", "Önce durdurun."); return; }
     const yeniSure = kalanSure + miktar;
-    if (yeniSure >= 0) setKalanSure(yeniSure);
+    
+    // YENİ: Hem kalanı hem başlangıcı güncelle
+    if (yeniSure >= 0) {
+      setKalanSure(yeniSure);
+      setBaslangicSuresi(yeniSure); 
+    }
   };
 
   const hizliSec = (dakika) => {
     if (odaklanmaAktif) { Alert.alert("Uyarı", "Önce durdurun."); return; }
-    setKalanSure(dakika * 60);
+    
+    // YENİ: Hem kalanı hem başlangıcı güncelle
+    const saniye = dakika * 60;
+    setKalanSure(saniye);
+    setBaslangicSuresi(saniye);
   };
 
-  // kategori ekle
+  // kategori ekle (ve kaydet)
   const kategoriEkle = async () => {
     if (yeniKategoriAdi.trim().length === 0) {
       Alert.alert("Hata", "Boş bırakma.");
@@ -138,6 +163,7 @@ export default function AnaEkran() {
   const sifirla = () => {
     setOdaklanmaAktif(false);
     setKalanSure(1500);
+    setBaslangicSuresi(1500); // Sıfırlayınca başlangıç da dönsün
     setOdakKesintisi(0);
   };
 
