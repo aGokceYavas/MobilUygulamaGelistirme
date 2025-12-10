@@ -61,7 +61,7 @@ export default function RaporEkrani() {
         </View>
       </View>
 
-      {/* SEKME ALANI (Düz Yazı) */}
+      {/* SEKME ALANI */}
       <View style={styles.sekmeContainer}>
         
         {/* Haftalık Sekmesi */}
@@ -74,7 +74,7 @@ export default function RaporEkrani() {
           </Text>
         </TouchableOpacity>
 
-        {/* Kategoriler Sekmesi */}
+        {/* Kategoriler */}
         <TouchableOpacity 
           style={[styles.sekmeButon, aktifSekme === 'Kategori' && styles.aktifSekmeButon]}
           onPress={() => setAktifSekme('Kategori')}
@@ -117,7 +117,7 @@ export default function RaporEkrani() {
           </ScrollView>
         )}
 
-        {/* DURUM 2: KATEGORİ */}
+        {/* KATEGORİ */}
         {aktifSekme === 'Kategori' && (
           <View style={{ alignItems: 'center', justifyContent: 'center', flex: 1 }}>
             {/* pasta grafik yeri */}
