@@ -1,14 +1,18 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function RaporEkrani() {
+  // state tanımları
   const [toplamSure, setToplamSure] = useState(0);
   const [seansSayisi, setSeansSayisi] = useState(0);
   const [sonSeanslar, setSonSeanslar] = useState([]);
+  
+  // sekme kontrolü
+  const [aktifSekme, setAktifSekme] = useState('Haftalik');
 
-  // sayfa her açıldığında verileri güncelle
+  // verileri çek
   useFocusEffect(
     useCallback(() => {
       verileriGetir();
@@ -17,19 +21,16 @@ export default function RaporEkrani() {
 
   const verileriGetir = async () => {
     try {
-      // hafızadan oku
       const jsonVeri = await AsyncStorage.getItem('odaklanmaVerileri');
       
       if (jsonVeri !== null) {
         const veriler = JSON.parse(jsonVeri);
         
-        // toplam süreyi hesapla (basit döngü)
         let toplam = 0;
         veriler.forEach(veri => {
           toplam += veri.sure;
         });
 
-        // en yeni kayıt en üstte olsun diye ters çevir
         setSonSeanslar(veriler.reverse()); 
         setToplamSure(toplam);
         setSeansSayisi(veriler.length);
@@ -39,7 +40,6 @@ export default function RaporEkrani() {
     }
   };
 
-  // saniyeyi dakikaya çevir
   const sureyiFormatla = (saniye) => {
     const dk = Math.floor(saniye / 60);
     return `${dk} dk`;
@@ -47,7 +47,7 @@ export default function RaporEkrani() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.baslik}>Özet Rapor</Text>
+      <Text style={styles.baslik}>İstatistikler</Text>
 
       {/* özet kutuları */}
       <View style={styles.ozetKutusu}>
@@ -61,35 +61,74 @@ export default function RaporEkrani() {
         </View>
       </View>
 
-      <Text style={styles.altBaslik}>Son Kayıtlar</Text>
-
-      {/* kayıt listesi */}
-      <ScrollView style={styles.liste}>
-        {sonSeanslar.map((item, index) => (
-          <View key={index} style={styles.satir}>
-            <View>
-              <Text style={styles.kategori}>{item.kategori}</Text>
-              <Text style={styles.tarih}>{item.tarih}</Text>
-            </View>
-            <View style={{ alignItems: 'flex-end' }}>
-              <Text style={styles.sure}>{sureyiFormatla(item.sure)}</Text>
-              
-              {/* kesinti varsa göster */}
-              {item.kesinti > 0 ? (
-                <Text style={styles.kesinti}>⚠️ {item.kesinti} kesinti</Text>
-              ) : (
-                <Text style={styles.basari}>Tam Odak 🔥</Text>
-              )}
-            </View>
-          </View>
-        ))}
+      {/* SEKME ALANI (Düz Yazı) */}
+      <View style={styles.sekmeContainer}>
         
-        {sonSeanslar.length === 0 && (
-          <Text style={{ textAlign: 'center', marginTop: 20, color: 'gray' }}>
-            Henüz hiç çalışma yapmadın.
+        {/* Haftalık Sekmesi */}
+        <TouchableOpacity 
+          style={[styles.sekmeButon, aktifSekme === 'Haftalik' && styles.aktifSekmeButon]}
+          onPress={() => setAktifSekme('Haftalik')}
+        >
+          <Text style={[styles.sekmeYazi, aktifSekme === 'Haftalik' && styles.aktifSekmeYazi]}>
+            Haftalık
           </Text>
+        </TouchableOpacity>
+
+        {/* Kategoriler Sekmesi */}
+        <TouchableOpacity 
+          style={[styles.sekmeButon, aktifSekme === 'Kategori' && styles.aktifSekmeButon]}
+          onPress={() => setAktifSekme('Kategori')}
+        >
+          <Text style={[styles.sekmeYazi, aktifSekme === 'Kategori' && styles.aktifSekmeYazi]}>
+            Kategoriler
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* İÇERİK ALANI */}
+      <View style={styles.icerikAlani}>
+        
+        {/* DURUM 1: HAFTALIK */}
+        {aktifSekme === 'Haftalik' && (
+          <ScrollView style={styles.liste} showsVerticalScrollIndicator={false}>
+            {/* grafik yeri */}
+            <View style={styles.grafikPlaceholder}>
+              <Text style={{color: 'gray'}}>-- Çubuk Grafik Alanı --</Text>
+            </View>
+
+            <Text style={styles.altBaslik}>Son Çalışmaların</Text>
+            
+            {sonSeanslar.map((item, index) => (
+              <View key={index} style={styles.satir}>
+                <View>
+                  <Text style={styles.kategori}>{item.kategori}</Text>
+                  <Text style={styles.tarih}>{item.tarih}</Text>
+                </View>
+                <View style={{ alignItems: 'flex-end' }}>
+                  <Text style={styles.sure}>{sureyiFormatla(item.sure)}</Text>
+                  {item.kesinti > 0 ? (
+                    <Text style={styles.kesinti}>⚠️ {item.kesinti} kesinti</Text>
+                  ) : (
+                    <Text style={styles.basari}>Tam Odak 🔥</Text>
+                  )}
+                </View>
+              </View>
+            ))}
+          </ScrollView>
         )}
-      </ScrollView>
+
+        {/* DURUM 2: KATEGORİ */}
+        {aktifSekme === 'Kategori' && (
+          <View style={{ alignItems: 'center', justifyContent: 'center', flex: 1 }}>
+            {/* pasta grafik yeri */}
+            <View style={[styles.grafikPlaceholder, { height: 250, width: 250, borderRadius: 125 }]}>
+               <Text style={{color: 'gray'}}>-- Pasta Grafik Alanı --</Text>
+            </View>
+            <Text style={{ marginTop: 20, color: 'gray' }}>Kategori bazlı dağılım burada olacak.</Text>
+          </View>
+        )}
+
+      </View>
     </View>
   );
 }
@@ -110,7 +149,7 @@ const styles = StyleSheet.create({
   ozetKutusu: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 30,
+    marginBottom: 20,
   },
   kutu: {
     backgroundColor: '#f8f9fa',
@@ -121,25 +160,54 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#eee',
   },
-  sayi: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#2c3e50',
+  sayi: { fontSize: 24, fontWeight: 'bold', color: '#2c3e50' },
+  etiket: { fontSize: 14, color: 'gray', marginTop: 5 },
+  
+  sekmeContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#f0f0f0',
+    borderRadius: 10,
+    padding: 5,
+    marginBottom: 20,
   },
-  etiket: {
-    fontSize: 14,
-    color: 'gray',
-    marginTop: 5,
+  sekmeButon: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderRadius: 8,
   },
+  aktifSekmeButon: {
+    backgroundColor: '#fff',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 1.41,
+    elevation: 2,
+  },
+  sekmeYazi: { color: 'gray', fontWeight: '500', fontSize: 15 },
+  aktifSekmeYazi: { color: '#333', fontWeight: 'bold' },
+
+  icerikAlani: { flex: 1 },
+  
+  grafikPlaceholder: {
+    height: 200,
+    backgroundColor: '#f9f9f9',
+    borderRadius: 15,
+    borderWidth: 2,
+    borderColor: '#eee',
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  
   altBaslik: {
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 10,
     color: '#333',
   },
-  liste: {
-    flex: 1,
-  },
+  liste: { flex: 1 },
   satir: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -148,28 +216,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
   },
-  kategori: {
-    fontWeight: 'bold',
-    fontSize: 16,
-    color: '#333',
-  },
-  tarih: {
-    fontSize: 12,
-    color: 'gray',
-    marginTop: 4,
-  },
-  sure: {
-    fontWeight: 'bold',
-    color: '#4CAF50',
-  },
-  kesinti: {
-    fontSize: 12,
-    color: '#e74c3c',
-    marginTop: 2,
-  },
-  basari: {
-    fontSize: 12,
-    color: '#4CAF50',
-    marginTop: 2,
-  }
+  kategori: { fontWeight: 'bold', fontSize: 16, color: '#333' },
+  tarih: { fontSize: 12, color: 'gray', marginTop: 4 },
+  sure: { fontWeight: 'bold', color: '#4CAF50' },
+  kesinti: { fontSize: 12, color: '#e74c3c', marginTop: 2 },
+  basari: { fontSize: 12, color: '#4CAF50', marginTop: 2 }
 });
