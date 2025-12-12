@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback, useState } from 'react';
 import { Dimensions, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { BarChart } from "react-native-chart-kit";
+import { BarChart, PieChart } from "react-native-chart-kit";
 
 export default function RaporEkrani() {
   const [toplamSure, setToplamSure] = useState(0);
@@ -10,11 +10,14 @@ export default function RaporEkrani() {
   const [sonSeanslar, setSonSeanslar] = useState([]);
   const [aktifSekme, setAktifSekme] = useState('Haftalik');
 
-  // grafiğin boş hali
+  // çubuk grafik verisi
   const [grafikVerisi, setGrafikVerisi] = useState({
     labels: ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"],
     datasets: [{ data: [0, 0, 0, 0, 0, 0, 0] }]
   });
+
+  // pasta grafik verisi (7. gün eklendi)
+  const [pastaVerisi, setPastaVerisi] = useState([]);
 
   useFocusEffect(
     useCallback(() => {
@@ -35,11 +38,12 @@ export default function RaporEkrani() {
         setToplamSure(toplam);
         setSeansSayisi(veriler.length);
         
-        // grafiği hazırla
+        // grafikleri hazırla
         haftalikVeriHazirla(veriler);
+        kategoriVeriHazirla(veriler);
       }
     } catch (error) {
-      console.log("okuma hatası", error);
+      console.log("hata", error);
     }
   };
 
@@ -47,13 +51,10 @@ export default function RaporEkrani() {
     const sonuclar = [0, 0, 0, 0, 0, 0, 0]; 
 
     veriler.forEach(item => {
-      // tarihi parçala
       const parcalar = item.tarih.split('-'); 
       const tarihObj = new Date(parcalar[0], parcalar[1] - 1, parcalar[2]);
       
       const gunIndex = tarihObj.getDay(); 
-      
-      // pzt baştan başlasın diye
       const duzeltilmisIndex = gunIndex === 0 ? 6 : gunIndex - 1;
       
       sonuclar[duzeltilmisIndex] += Math.floor(item.sure / 60);
@@ -65,12 +66,42 @@ export default function RaporEkrani() {
     });
   };
 
+  // kategori verilerini hazırla (7. gün)
+  const kategoriVeriHazirla = (veriler) => {
+    const gruplar = {};
+
+    // süreleri topla
+    veriler.forEach(item => {
+      if (!gruplar[item.kategori]) {
+        gruplar[item.kategori] = 0;
+      }
+      gruplar[item.kategori] += Math.floor(item.sure / 60);
+    });
+
+    // grafiğe uygun formata çevir
+    const renkler = ['#ff6384', '#36a2eb', '#ffce56', '#4bc0c0', '#9966ff', '#ff9f40'];
+    let index = 0;
+    
+    const sonucDizisi = Object.keys(gruplar).map(kategoriAdi => {
+      const veri = {
+        name: kategoriAdi,
+        population: gruplar[kategoriAdi],
+        color: renkler[index % renkler.length],
+        legendFontColor: "#7F7F7F",
+        legendFontSize: 12
+      };
+      index++;
+      return veri;
+    });
+
+    setPastaVerisi(sonucDizisi);
+  };
+
   const sureyiFormatla = (saniye) => {
     const dk = Math.floor(saniye / 60);
     return `${dk} dk`;
   };
 
-  // tarihi tr formatına çevir
   const tarihiGuzellestir = (isoTarih) => {
     const parcalar = isoTarih.split('-');
     return `${parcalar[2]}.${parcalar[1]}.${parcalar[0]}`;
@@ -108,10 +139,9 @@ export default function RaporEkrani() {
       </View>
 
       <View style={styles.icerikAlani}>
+        {/* HAFTALIK GÖRÜNÜM */}
         {aktifSekme === 'Haftalik' && (
           <ScrollView style={styles.liste} showsVerticalScrollIndicator={false}>
-            
-            {/* grafik alanı */}
             <View style={styles.grafikKonteyner}>
               <BarChart
                 data={grafikVerisi}
@@ -154,11 +184,31 @@ export default function RaporEkrani() {
           </ScrollView>
         )}
 
+        {/* KATEGORİ GÖRÜNÜMÜ (PASTA GRAFİK) */}
         {aktifSekme === 'Kategori' && (
-          <View style={{ alignItems: 'center', justifyContent: 'center', flex: 1 }}>
-            <View style={[styles.grafikPlaceholder, { height: 250, width: 250, borderRadius: 125 }]}>
-               <Text style={{color: 'gray'}}>-- Pasta Grafik --</Text>
-            </View>
+          <View style={{ alignItems: 'center', flex: 1 }}>
+             {pastaVerisi.length > 0 ? (
+               <View style={styles.grafikKonteyner}>
+                 <PieChart
+                    data={pastaVerisi}
+                    width={Dimensions.get("window").width - 40}
+                    height={220}
+                    chartConfig={{
+                      color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+                    }}
+                    accessor={"population"}
+                    backgroundColor={"transparent"}
+                    paddingLeft={"15"}
+                    absolute // yüzdeleri mutlak sayı olarak göster
+                  />
+               </View>
+             ) : (
+               <Text style={{ marginTop: 50, color: 'gray' }}>Henüz veri yok.</Text>
+             )}
+             
+             <Text style={{ marginTop: 20, color: '#555', textAlign: 'center' }}>
+               Kategorilere göre toplam çalışma (dakika)
+             </Text>
           </View>
         )}
       </View>
@@ -179,8 +229,7 @@ const styles = StyleSheet.create({
   sekmeYazi: { color: 'gray', fontWeight: '500', fontSize: 15 },
   aktifSekmeYazi: { color: '#333', fontWeight: 'bold' },
   icerikAlani: { flex: 1 },
-  grafikKonteyner: { alignItems: 'center', backgroundColor: '#fff', marginBottom: 20, borderRadius: 10, overflow: 'hidden', borderWidth: 1, borderColor: '#f0f0f0' },
-  grafikPlaceholder: { height: 200, backgroundColor: '#f9f9f9', borderRadius: 15, borderWidth: 2, borderColor: '#eee', borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
+  grafikKonteyner: { alignItems: 'center', backgroundColor: '#fff', marginBottom: 20, borderRadius: 10, overflow: 'hidden', borderWidth: 1, borderColor: '#f0f0f0', padding: 10 },
   altBaslik: { fontSize: 18, fontWeight: 'bold', marginBottom: 10, color: '#333' },
   liste: { flex: 1 },
   satir: { flexDirection: 'row', justifyContent: 'space-between', padding: 15, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
