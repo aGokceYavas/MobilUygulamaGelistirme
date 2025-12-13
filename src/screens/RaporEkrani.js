@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback, useState } from 'react';
-import { Dimensions, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Dimensions, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { BarChart, PieChart } from "react-native-chart-kit";
 
 export default function RaporEkrani() {
@@ -10,13 +10,11 @@ export default function RaporEkrani() {
   const [sonSeanslar, setSonSeanslar] = useState([]);
   const [aktifSekme, setAktifSekme] = useState('Haftalik');
 
-  // çubuk grafik verisi
   const [grafikVerisi, setGrafikVerisi] = useState({
     labels: ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"],
     datasets: [{ data: [0, 0, 0, 0, 0, 0, 0] }]
   });
 
-  // pasta grafik verisi (7. gün eklendi)
   const [pastaVerisi, setPastaVerisi] = useState([]);
 
   useFocusEffect(
@@ -38,13 +36,48 @@ export default function RaporEkrani() {
         setToplamSure(toplam);
         setSeansSayisi(veriler.length);
         
-        // grafikleri hazırla
         haftalikVeriHazirla(veriler);
         kategoriVeriHazirla(veriler);
+      } else {
+        sifirla();
       }
     } catch (error) {
       console.log("hata", error);
     }
+  };
+
+  // verileri sil
+  const verileriTemizle = () => {
+    Alert.alert(
+      "Dikkat",
+      "Geçmiş silinecek. Emin misin?",
+      [
+        { text: "Vazgeç", style: "cancel" },
+        { 
+          text: "Sil", 
+          style: "destructive", 
+          onPress: async () => {
+            try {
+              await AsyncStorage.removeItem('odaklanmaVerileri');
+              sifirla(); 
+            } catch (e) {
+              console.log("hata", e);
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const sifirla = () => {
+    setSonSeanslar([]);
+    setToplamSure(0);
+    setSeansSayisi(0);
+    setGrafikVerisi({
+      labels: ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"],
+      datasets: [{ data: [0, 0, 0, 0, 0, 0, 0] }]
+    });
+    setPastaVerisi([]);
   };
 
   const haftalikVeriHazirla = (veriler) => {
@@ -66,11 +99,9 @@ export default function RaporEkrani() {
     });
   };
 
-  // kategori verilerini hazırla (7. gün)
   const kategoriVeriHazirla = (veriler) => {
     const gruplar = {};
 
-    // süreleri topla
     veriler.forEach(item => {
       if (!gruplar[item.kategori]) {
         gruplar[item.kategori] = 0;
@@ -78,7 +109,6 @@ export default function RaporEkrani() {
       gruplar[item.kategori] += Math.floor(item.sure / 60);
     });
 
-    // grafiğe uygun formata çevir
     const renkler = ['#ff6384', '#36a2eb', '#ffce56', '#4bc0c0', '#9966ff', '#ff9f40'];
     let index = 0;
     
@@ -109,7 +139,13 @@ export default function RaporEkrani() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.baslik}>İstatistikler</Text>
+      {/* başlık ve silme butonu */}
+      <View style={styles.baslikSatiri}>
+        <Text style={styles.baslik}>İstatistikler</Text>
+        <TouchableOpacity onPress={verileriTemizle} style={styles.silButonu}>
+          <Text style={styles.silYazi}>🗑️ Temizle</Text>
+        </TouchableOpacity>
+      </View>
 
       <View style={styles.ozetKutusu}>
         <View style={styles.kutu}>
@@ -139,7 +175,6 @@ export default function RaporEkrani() {
       </View>
 
       <View style={styles.icerikAlani}>
-        {/* HAFTALIK GÖRÜNÜM */}
         {aktifSekme === 'Haftalik' && (
           <ScrollView style={styles.liste} showsVerticalScrollIndicator={false}>
             <View style={styles.grafikKonteyner}>
@@ -165,26 +200,29 @@ export default function RaporEkrani() {
             </View>
 
             <Text style={styles.altBaslik}>Son Çalışmaların</Text>
-            {sonSeanslar.map((item, index) => (
-              <View key={index} style={styles.satir}>
-                <View>
-                  <Text style={styles.kategori}>{item.kategori}</Text>
-                  <Text style={styles.tarih}>{tarihiGuzellestir(item.tarih)}</Text>
+            {sonSeanslar.length > 0 ? (
+              sonSeanslar.map((item, index) => (
+                <View key={index} style={styles.satir}>
+                  <View>
+                    <Text style={styles.kategori}>{item.kategori}</Text>
+                    <Text style={styles.tarih}>{tarihiGuzellestir(item.tarih)}</Text>
+                  </View>
+                  <View style={{ alignItems: 'flex-end' }}>
+                    <Text style={styles.sure}>{sureyiFormatla(item.sure)}</Text>
+                    {item.kesinti > 0 ? (
+                      <Text style={styles.kesinti}>⚠️ {item.kesinti} kesinti</Text>
+                    ) : (
+                      <Text style={styles.basari}>Tam Odak 🔥</Text>
+                    )}
+                  </View>
                 </View>
-                <View style={{ alignItems: 'flex-end' }}>
-                  <Text style={styles.sure}>{sureyiFormatla(item.sure)}</Text>
-                  {item.kesinti > 0 ? (
-                    <Text style={styles.kesinti}>⚠️ {item.kesinti} kesinti</Text>
-                  ) : (
-                    <Text style={styles.basari}>Tam Odak 🔥</Text>
-                  )}
-                </View>
-              </View>
-            ))}
+              ))
+            ) : (
+              <Text style={{textAlign: 'center', marginTop: 10, color: 'gray'}}>Kayıt bulunamadı.</Text>
+            )}
           </ScrollView>
         )}
 
-        {/* KATEGORİ GÖRÜNÜMÜ (PASTA GRAFİK) */}
         {aktifSekme === 'Kategori' && (
           <View style={{ alignItems: 'center', flex: 1 }}>
              {pastaVerisi.length > 0 ? (
@@ -199,7 +237,7 @@ export default function RaporEkrani() {
                     accessor={"population"}
                     backgroundColor={"transparent"}
                     paddingLeft={"15"}
-                    absolute // yüzdeleri mutlak sayı olarak göster
+                    absolute 
                   />
                </View>
              ) : (
@@ -218,7 +256,12 @@ export default function RaporEkrani() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff', padding: 20, paddingTop: 50 },
-  baslik: { fontSize: 24, fontWeight: 'bold', marginBottom: 20, color: '#333' },
+  
+  baslikSatiri: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  baslik: { fontSize: 24, fontWeight: 'bold', color: '#333' },
+  silButonu: { padding: 8, backgroundColor: '#ffebee', borderRadius: 8 },
+  silYazi: { color: '#d32f2f', fontWeight: 'bold', fontSize: 14 },
+
   ozetKutusu: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
   kutu: { backgroundColor: '#f8f9fa', width: '48%', padding: 15, borderRadius: 10, alignItems: 'center', borderWidth: 1, borderColor: '#eee' },
   sayi: { fontSize: 24, fontWeight: 'bold', color: '#2c3e50' },
