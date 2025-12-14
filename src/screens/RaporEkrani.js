@@ -46,23 +46,20 @@ export default function RaporEkrani() {
     }
   };
 
-  // verileri sil
   const verileriTemizle = () => {
     Alert.alert(
-      "Dikkat",
-      "Geçmiş silinecek. Emin misin?",
+      "Verileri Temizle",
+      "Tüm istatistikler sıfırlanacak. Bu işlem geri alınamaz.",
       [
         { text: "Vazgeç", style: "cancel" },
         { 
-          text: "Sil", 
+          text: "Evet, Hepsini Sil", 
           style: "destructive", 
           onPress: async () => {
             try {
               await AsyncStorage.removeItem('odaklanmaVerileri');
               sifirla(); 
-            } catch (e) {
-              console.log("hata", e);
-            }
+            } catch (e) { console.log(e); }
           }
         }
       ]
@@ -82,17 +79,13 @@ export default function RaporEkrani() {
 
   const haftalikVeriHazirla = (veriler) => {
     const sonuclar = [0, 0, 0, 0, 0, 0, 0]; 
-
     veriler.forEach(item => {
       const parcalar = item.tarih.split('-'); 
       const tarihObj = new Date(parcalar[0], parcalar[1] - 1, parcalar[2]);
-      
       const gunIndex = tarihObj.getDay(); 
       const duzeltilmisIndex = gunIndex === 0 ? 6 : gunIndex - 1;
-      
       sonuclar[duzeltilmisIndex] += Math.floor(item.sure / 60);
     });
-
     setGrafikVerisi({
       labels: ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"],
       datasets: [{ data: sonuclar }]
@@ -101,17 +94,12 @@ export default function RaporEkrani() {
 
   const kategoriVeriHazirla = (veriler) => {
     const gruplar = {};
-
     veriler.forEach(item => {
-      if (!gruplar[item.kategori]) {
-        gruplar[item.kategori] = 0;
-      }
+      if (!gruplar[item.kategori]) gruplar[item.kategori] = 0;
       gruplar[item.kategori] += Math.floor(item.sure / 60);
     });
-
-    const renkler = ['#ff6384', '#36a2eb', '#ffce56', '#4bc0c0', '#9966ff', '#ff9f40'];
+    const renkler = ['#ff7675', '#74b9ff', '#ffeaa7', '#55efc4', '#a29bfe', '#fab1a0'];
     let index = 0;
-    
     const sonucDizisi = Object.keys(gruplar).map(kategoriAdi => {
       const veri = {
         name: kategoriAdi,
@@ -123,7 +111,6 @@ export default function RaporEkrani() {
       index++;
       return veri;
     });
-
     setPastaVerisi(sonucDizisi);
   };
 
@@ -139,22 +126,21 @@ export default function RaporEkrani() {
 
   return (
     <View style={styles.container}>
-      {/* başlık ve silme butonu */}
       <View style={styles.baslikSatiri}>
         <Text style={styles.baslik}>İstatistikler</Text>
-        <TouchableOpacity onPress={verileriTemizle} style={styles.silButonu}>
-          <Text style={styles.silYazi}>🗑️ Temizle</Text>
+        <TouchableOpacity onPress={verileriTemizle} style={styles.silBtn}>
+          <Text style={styles.silYazi}>Geçmişi Temizle</Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.ozetKutusu}>
         <View style={styles.kutu}>
           <Text style={styles.sayi}>{seansSayisi}</Text>
-          <Text style={styles.etiket}>Toplam Seans</Text>
+          <Text style={styles.etiket}>SEANS</Text>
         </View>
         <View style={styles.kutu}>
           <Text style={styles.sayi}>{sureyiFormatla(toplamSure)}</Text>
-          <Text style={styles.etiket}>Toplam Süre</Text>
+          <Text style={styles.etiket}>SÜRE</Text>
         </View>
       </View>
 
@@ -165,7 +151,6 @@ export default function RaporEkrani() {
         >
           <Text style={[styles.sekmeYazi, aktifSekme === 'Haftalik' && styles.aktifSekmeYazi]}>Haftalık</Text>
         </TouchableOpacity>
-
         <TouchableOpacity 
           style={[styles.sekmeButon, aktifSekme === 'Kategori' && styles.aktifSekmeButon]}
           onPress={() => setAktifSekme('Kategori')}
@@ -180,46 +165,45 @@ export default function RaporEkrani() {
             <View style={styles.grafikKonteyner}>
               <BarChart
                 data={grafikVerisi}
-                width={Dimensions.get("window").width - 40}
+                width={Dimensions.get("window").width - 50}
                 height={220}
                 yAxisSuffix="dk"
                 chartConfig={{
-                  backgroundColor: "#ffffff",
-                  backgroundGradientFrom: "#ffffff",
-                  backgroundGradientTo: "#ffffff",
+                  backgroundColor: "#fff",
+                  backgroundGradientFrom: "#fff",
+                  backgroundGradientTo: "#fff",
                   decimalPlaces: 0,
-                  color: (opacity = 1) => `rgba(34, 197, 94, ${opacity})`,
+                  color: (opacity = 1) => `rgba(46, 204, 113, ${opacity})`,
                   labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
                   barPercentage: 0.7,
                 }}
-                verticalLabelRotation={0}
                 style={{ borderRadius: 10 }}
-                fromZero={true} 
-                showValuesOnTopOfBars={true}
+                fromZero={true} showValuesOnTopOfBars={true}
               />
             </View>
 
-            <Text style={styles.altBaslik}>Son Çalışmaların</Text>
+            <Text style={styles.altBaslik}>Geçmiş Seanslar</Text>
             {sonSeanslar.length > 0 ? (
               sonSeanslar.map((item, index) => (
-                <View key={index} style={styles.satir}>
-                  <View>
-                    <Text style={styles.kategori}>{item.kategori}</Text>
-                    <Text style={styles.tarih}>{tarihiGuzellestir(item.tarih)}</Text>
+                <View key={index} style={styles.kart}>
+                  <View style={styles.kartSol}>
+                    <Text style={styles.kategoriBaslik}>{item.kategori}</Text>
+                    <Text style={styles.tarihText}>{tarihiGuzellestir(item.tarih)}</Text>
                   </View>
-                  <View style={{ alignItems: 'flex-end' }}>
-                    <Text style={styles.sure}>{sureyiFormatla(item.sure)}</Text>
+                  <View style={styles.kartSag}>
+                    <Text style={styles.sureText}>{sureyiFormatla(item.sure)}</Text>
                     {item.kesinti > 0 ? (
-                      <Text style={styles.kesinti}>⚠️ {item.kesinti} kesinti</Text>
+                      <Text style={styles.kesintiText}>⚠️ {item.kesinti} kesinti</Text>
                     ) : (
-                      <Text style={styles.basari}>Tam Odak 🔥</Text>
+                      <Text style={styles.basariText}>🔥 Mükemmel</Text>
                     )}
                   </View>
                 </View>
               ))
             ) : (
-              <Text style={{textAlign: 'center', marginTop: 10, color: 'gray'}}>Kayıt bulunamadı.</Text>
+              <Text style={styles.bosMesaj}>Henüz bir kayıt yok.</Text>
             )}
+            <View style={{height: 20}} />
           </ScrollView>
         )}
 
@@ -241,12 +225,9 @@ export default function RaporEkrani() {
                   />
                </View>
              ) : (
-               <Text style={{ marginTop: 50, color: 'gray' }}>Henüz veri yok.</Text>
+               <Text style={styles.bosMesaj}>Veri yok.</Text>
              )}
-             
-             <Text style={{ marginTop: 20, color: '#555', textAlign: 'center' }}>
-               Kategorilere göre toplam çalışma (dakika)
-             </Text>
+             <Text style={{ marginTop: 20, color: '#95a5a6' }}>Kategori Dağılımı</Text>
           </View>
         )}
       </View>
@@ -255,30 +236,36 @@ export default function RaporEkrani() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff', padding: 20, paddingTop: 50 },
+  container: { flex: 1, backgroundColor: '#f8f9fa', padding: 20, paddingTop: 60 },
   
-  baslikSatiri: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  baslik: { fontSize: 24, fontWeight: 'bold', color: '#333' },
-  silButonu: { padding: 8, backgroundColor: '#ffebee', borderRadius: 8 },
-  silYazi: { color: '#d32f2f', fontWeight: 'bold', fontSize: 14 },
+  baslikSatiri: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 25 },
+  baslik: { fontSize: 28, fontWeight: 'bold', color: '#2c3e50' },
+  silBtn: { padding: 5 },
+  silYazi: { color: '#e74c3c', fontSize: 13, fontWeight: '600' },
 
-  ozetKutusu: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
-  kutu: { backgroundColor: '#f8f9fa', width: '48%', padding: 15, borderRadius: 10, alignItems: 'center', borderWidth: 1, borderColor: '#eee' },
-  sayi: { fontSize: 24, fontWeight: 'bold', color: '#2c3e50' },
-  etiket: { fontSize: 14, color: 'gray', marginTop: 5 },
-  sekmeContainer: { flexDirection: 'row', backgroundColor: '#f0f0f0', borderRadius: 10, padding: 5, marginBottom: 20 },
-  sekmeButon: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 8 },
-  aktifSekmeButon: { backgroundColor: '#fff', elevation: 2 },
-  sekmeYazi: { color: 'gray', fontWeight: '500', fontSize: 15 },
-  aktifSekmeYazi: { color: '#333', fontWeight: 'bold' },
+  ozetKutusu: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 25 },
+  kutu: { backgroundColor: '#fff', width: '48%', padding: 15, borderRadius: 15, alignItems: 'center', elevation: 3, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4, shadowOffset:{width:0, height:2} },
+  sayi: { fontSize: 22, fontWeight: 'bold', color: '#2c3e50' },
+  etiket: { fontSize: 11, color: '#95a5a6', marginTop: 5, letterSpacing: 1, fontWeight: 'bold' },
+
+  sekmeContainer: { flexDirection: 'row', backgroundColor: '#ecf0f1', borderRadius: 12, padding: 4, marginBottom: 20 },
+  sekmeButon: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 10 },
+  aktifSekmeButon: { backgroundColor: '#fff', elevation: 1 },
+  sekmeYazi: { color: '#7f8c8d', fontWeight: '600', fontSize: 14 },
+  aktifSekmeYazi: { color: '#2c3e50', fontWeight: 'bold' },
+
   icerikAlani: { flex: 1 },
-  grafikKonteyner: { alignItems: 'center', backgroundColor: '#fff', marginBottom: 20, borderRadius: 10, overflow: 'hidden', borderWidth: 1, borderColor: '#f0f0f0', padding: 10 },
-  altBaslik: { fontSize: 18, fontWeight: 'bold', marginBottom: 10, color: '#333' },
+  grafikKonteyner: { alignItems: 'center', backgroundColor: '#fff', marginBottom: 20, borderRadius: 15, padding: 10, elevation: 2 },
+  altBaslik: { fontSize: 18, fontWeight: 'bold', marginBottom: 15, color: '#34495e', marginLeft: 5 },
+  
   liste: { flex: 1 },
-  satir: { flexDirection: 'row', justifyContent: 'space-between', padding: 15, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
-  kategori: { fontWeight: 'bold', fontSize: 16, color: '#333' },
-  tarih: { fontSize: 12, color: 'gray', marginTop: 4 },
-  sure: { fontWeight: 'bold', color: '#4CAF50' },
-  kesinti: { fontSize: 12, color: '#e74c3c', marginTop: 2 },
-  basari: { fontSize: 12, color: '#4CAF50', marginTop: 2 }
+  kart: { flexDirection: 'row', justifyContent: 'space-between', padding: 15, backgroundColor: '#fff', borderRadius: 12, marginBottom: 10, elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 3, shadowOffset:{width:0, height:1} },
+  kartSol: { justifyContent: 'center' },
+  kategoriBaslik: { fontWeight: 'bold', fontSize: 16, color: '#2c3e50' },
+  tarihText: { fontSize: 12, color: '#95a5a6', marginTop: 3 },
+  kartSag: { alignItems: 'flex-end', justifyContent: 'center' },
+  sureText: { fontWeight: 'bold', fontSize: 16, color: '#27ae60' },
+  kesintiText: { fontSize: 12, color: '#e74c3c', marginTop: 2, fontWeight: '500' },
+  basariText: { fontSize: 12, color: '#f39c12', marginTop: 2, fontWeight: '500' },
+  bosMesaj: { textAlign: 'center', marginTop: 30, color: '#bdc3c7', fontStyle: 'italic' }
 });
