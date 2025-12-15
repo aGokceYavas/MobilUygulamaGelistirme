@@ -23,25 +23,6 @@ Navigasyon: @react-navigation/bottom-tabs
 2. Veri Modeli ve Akış Şeması
 Uygulama, ilişkisel olmayan bir veri yapısı kullanmaktadır. Veriler JSON formatında serileştirilerek cihaz hafızasında saklanır.
 
-Veri Kayıt Yapısı (Şema):
-
-+--------------------------------------------------+
-|  odaklanmaVerileri (Array<Object>)               |
-+--------------------------------------------------+
-|                                                  |
-|  [                                               |
-|    {                                             |
-|      "id": 1734123456789,      (Timestamp/Long)  |
-|      "tarih": "2025-12-14",    (ISO String)      |
-|      "kategori": "Ders",       (String)          |
-|      "sure": 1500,             (Integer/Saniye)  |
-|      "kesinti": 2              (Integer)         |
-|    },                                            |
-|    ...                                           |
-|  ]                                               |
-|                                                  |
-+--------------------------------------------------+
-
 Uygulama Çalışma Mantığı:
 
 [BAŞLAT]
