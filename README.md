@@ -1,53 +1,101 @@
-Odaklanma Takibi ve Raporlama Uygulaması
+Odaklanma Takibi ve Verimlilik Analizi Uygulaması
 
-Ders: Sakarya Üniversitesi - BSM 447 Mobil Uygulama Geliştirme Dersi
-Dönem: 2025-2026 Güz
-Durum: Geliştirme Aşamasında
 
-  Proje Hakkında
-Bu proje, günümüzün en büyük problemlerinden biri olan dijital dikkat dağınıklığıyla mücadele etmek için geliştirilmektedir. Uygulamanın temel amacı; kullanıcının belirlediği kategorilerde (Ders, Kodlama vb.) odaklanma seansları başlatması ve süreç boyunca uygulamadan çıkıp çıkmadığını (dikkat dağınıklığını) takip ederek raporlamasıdır.
+Proje Özeti:
 
-  Özellikler (MVP)
-Proje tamamlandığında aşağıdaki özellikleri içerecektir:
+Bu proje, kullanıcıların belirli kategoriler altında odaklanma sürelerini yönetmelerini, uygulama yaşam döngüsü (App Lifecycle) takibi ile dikkat dağınıklığını tespit etmelerini ve toplanan verileri yerel veritabanı üzerinde analiz etmelerini sağlayan bir mobil uygulamadır.
 
-1. Odaklanma Sayacı: Varsayılan 25 dakikalık (Pomodoro) geri sayım aracı.
-2. Kategori Yönetimi: Seansı başlatmadan önce Ders, Proje, Kitap Okuma gibi etiketleme imkanı.
-3. Akıllı Takip (Smart Detection): Kullanıcı sayaç çalışırken uygulamayı arka plana atarsa (başka uygulamaya geçerse), bu durum dikkat dağınıklığı olarak kaydedilir ve sayaç duraklatılır.
-4. Detaylı Raporlar:
-   - Günlük ve toplam odaklanma süreleri.
-   - Haftalık odaklanma grafiği (Bar Chart).
-   - Kategori dağılım grafiği (Pie Chart).
+Geliştirme Ortamı: React Native (Expo SDK 52) Platform: iOS & Android
 
-  Kullanılan Teknolojiler
-- Framework: React Native (Expo)
-- Navigasyon: React Native Navigation (Tab & Stack)
-- Veri Görselleştirme: React Native Chart Kit
-- Veri Kayıt: Async Storage (Yerel Veritabanı)
-- Durum Kontrolü: AppState API
+1. Teknik Mimari ve Kullanılan Teknolojiler
+Proje, bileşen tabanlı (Component-Based) mimari kullanılarak geliştirilmiştir. Durum yönetimi (State Management) için React Hooks yapısı tercih edilmiş, veri kalıcılığı için asenkron depolama çözümleri kullanılmıştır.
 
-  Kurulum ve Çalıştırma
+Core Framework: React Native
 
-Projeyi kendi bilgisayarınızda çalıştırmak için:
+Veri Kalıcılığı (Persistence): @react-native-async-storage/async-storage
 
-1. Repoyu klonlayın:
-   git clone https://github.com/KULLANICI_ADINIZ/OdaklanmaTakibi.git
-   cd OdaklanmaTakibi
+Arka Plan Yönetimi: React Native AppState API
 
-2. Paketleri yükleyin:
-   npm install
+Veri Görselleştirme: react-native-chart-kit & react-native-svg
 
-3. Uygulamayı başlatın:
-   npx expo start
+Navigasyon: @react-navigation/bottom-tabs
 
-Terminalde çıkan QR kodu Expo Go uygulaması ile okutarak test edebilirsiniz.
+2. Veri Modeli ve Akış Şeması
+Uygulama, ilişkisel olmayan bir veri yapısı kullanmaktadır. Veriler JSON formatında serileştirilerek cihaz hafızasında saklanır.
 
-  Proje Yol Haritası (To-Do)
-- [x] Proje oluşturulması ve konfigürasyon (Expo)
-- [x] Gerekli kütüphanelerin eklenmesi (Navigation, Charts)
-- [ ] Ana Sayfa (Timer) arayüz tasarımı
-- [ ] AppState ile background durumunun yakalanması
-- [ ] Raporlar ekranı ve grafik entegrasyonu
-- [ ] README ve Dokümantasyonun güncellenmesi
+Veri Kayıt Yapısı (Şema):
 
----
-Bu proje BSM 447 dersi dönem ödevi kapsamında geliştirilmektedir.
++--------------------------------------------------+
+|  odaklanmaVerileri (Array<Object>)               |
++--------------------------------------------------+
+|                                                  |
+|  [                                               |
+|    {                                             |
+|      "id": 1734123456789,      (Timestamp/Long)  |
+|      "tarih": "2025-12-14",    (ISO String)      |
+|      "kategori": "Ders",       (String)          |
+|      "sure": 1500,             (Integer/Saniye)  |
+|      "kesinti": 2              (Integer)         |
+|    },                                            |
+|    ...                                           |
+|  ]                                               |
+|                                                  |
++--------------------------------------------------+
+
+Uygulama Çalışma Mantığı:
+
+[BAŞLAT]
+   |
+   v
+[SAYAÇ AKTİF] <----(Kullanıcı Etkileşimi)
+   |      |
+   |      +---> [Arka Plana Geçiş Tespiti (AppState)]
+   |                      |
+   |              [Kesinti Sayacını Artır]
+   |                      |
+   |              [Kullanıcıyı Uyar (Vibration)]
+   |
+   +---> [Süre Doldu / Manuel Durdurma]
+                  |
+                  v
+         [Veriyi AsyncStorage'a Yaz]
+                  |
+                  v
+         [İstatistikleri Güncelle]
+
+
+
+3. Temel Fonksiyonlar ve Algoritmalar
+
+A. Odaklanma ve Kesinti Takibi
+Uygulama, AppState API'sini dinleyerek kullanıcının uygulamadan ayrıldığı anları (Instagram, WhatsApp vb. geçişleri) tespit eder.
+
+Algoritma: Sayaç aktifken AppState durumu active dışına çıkarsa (inactive/background), sistem bunu bir "odak kaybı" olarak işaretler ve kesinti sayacını (odakKesintisi) artırır.
+
+B. Veri Görselleştirme ve Analiz
+Kaydedilen ham veriler, Rapor Ekranı yüklendiğinde (useFocusEffect) işlenerek iki farklı grafik türüne dönüştürülür:
+
+Haftalık Analiz (Bar Chart): YYYY-MM-DD formatındaki tarih verisi parçalanarak (split) haftanın günlerine (Pzt-Paz) göre gruplanır (Aggregation).
+
+Kategori Dağılımı (Pie Chart): Kategorik veriler toplanarak oransal dağılım hesaplanır.
+
+C. Tarih Formatı Yönetimi
+Veritabanı tutarlılığı için tarihler arka planda ISO 8601 (YYYY-MM-DD) standardında saklanmaktadır. Kullanıcı arayüzünde (UI) ise bu veriler istemci tarafında işlenerek yerel formata (GG.AA.YYYY) dönüştürülür.
+
+4. Kurulum Yönergeleri
+Projeyi yerel ortamda çalıştırmak için aşağıdaki adımlar izlenmelidir:
+
+Gerekli bağımlılıkların yüklenmesi:
+
+Bash
+
+npm install
+Uygulamanın başlatılması:
+
+Bash
+
+npx expo start
+5. Geliştirici Notları
+Manuel State Yönetimi: Proje ölçeği gereği Redux gibi harici kütüphaneler yerine, React'in kendi useState ve useEffect hook'ları ile performans optimizasyonu sağlanmıştır.
+
+Veri Temizliği: Geliştirme ve test süreçlerini kolaylaştırmak adına, rapor ekranına tüm AsyncStorage verisini temizleyen (Hard Reset) bir fonksiyon entegre edilmiştir.
