@@ -1,82 +1,68 @@
-Odaklanma Takibi ve Verimlilik Analizi Uygulaması
+# Odaklanma Takibi (Focus Tracker)
 
+Bu proje, Mobil Uygulama Geliştirme dersi kapsamında geliştirdiğim, kişisel verimliliği artırmayı hedefleyen bir mobil uygulamadır.
 
-Proje Özeti:
+Temel amacı, çalışma esnasında telefonla ilgilenip dikkati dağılan kullanıcıları tespit etmek ve çalışma alışkanlıklarını grafiklerle raporlamaktır.
 
-Bu proje, kullanıcıların belirli kategoriler altında odaklanma sürelerini yönetmelerini, uygulama yaşam döngüsü (App Lifecycle) takibi ile dikkat dağınıklığını tespit etmelerini ve toplanan verileri yerel veritabanı üzerinde analiz etmelerini sağlayan bir mobil uygulamadır.
+## Proje Hakkında
 
-Geliştirme Ortamı: React Native (Expo SDK 52) Platform: iOS & Android
+Uygulama, standart bir pomodoro sayacından farklı olarak kullanıcının uygulama içindeki durumunu takip eder. Eğer kullanıcı sayaç çalışırken uygulamayı arka plana atarsa (örneğin sosyal medyada gezinmek için uygulamadan çıkarsa), sistem bunu bir "odak kesintisi" olarak algılar ve kaydeder.
 
-1. Teknik Mimari ve Kullanılan Teknolojiler
-Proje, bileşen tabanlı (Component-Based) mimari kullanılarak geliştirilmiştir. Durum yönetimi (State Management) için React Hooks yapısı tercih edilmiş, veri kalıcılığı için asenkron depolama çözümleri kullanılmıştır.
+Tüm veriler kullanıcının cihazında yerel olarak saklanır, herhangi bir internet bağlantısı gerektirmez.
 
-Core Framework: React Native
+## Temel Özellikler
 
-Veri Kalıcılığı (Persistence): @react-native-async-storage/async-storage
+1. Arka Plan Takibi ve Uyarı Sistemi
+Sayacı başlattığınızda uygulama açık kalmalıdır. Eğer başka bir uygulamaya geçiş yaparsanız, sayaç bunu tespit eder, titreşimle uyarı verir ve bu durumu veritabanına "kesinti" olarak işler.
 
-Arka Plan Yönetimi: React Native AppState API
+2. Kategori Yönetimi
+Ders, Kodlama, Kitap Okuma gibi varsayılan kategoriler mevcuttur. Ayrıca kullanıcı kendi ihtiyaçlarına göre yeni kategoriler ekleyebilir.
 
-Veri Görselleştirme: react-native-chart-kit & react-native-svg
+3. Veri Görselleştirme
+Kaydedilen çalışma seansları, Rapor ekranında iki farklı grafik türüyle sunulur:
+- Haftalık Grafik: Hangi gün ne kadar çalışıldığını gösteren çubuk grafik.
+- Kategori Dağılımı: Hangi derse/işe ağırlık verildiğini gösteren pasta grafik.
 
-Navigasyon: @react-navigation/bottom-tabs
+4. Veri Kalıcılığı
+Uygulama kapatılıp açılsa bile veriler kaybolmaz. Tüm kayıtlar cihazın yerel hafızasında (AsyncStorage) JSON formatında tutulur.
 
-2. Veri Modeli ve Akış Şeması
-Uygulama, ilişkisel olmayan bir veri yapısı kullanmaktadır. Veriler JSON formatında serileştirilerek cihaz hafızasında saklanır.
+## Nasıl Çalışır?
 
-Uygulama Çalışma Mantığı:
+Uygulamanın arkasındaki mantık şu adımlarla ilerler:
 
-[BAŞLAT]
-   |
-   v
-[SAYAÇ AKTİF] <----(Kullanıcı Etkileşimi)
-   |      |
-   |      +---> [Arka Plana Geçiş Tespiti (AppState)]
-   |                      |
-   |              [Kesinti Sayacını Artır]
-   |                      |
-   |              [Kullanıcıyı Uyar (Vibration)]
-   |
-   +---> [Süre Doldu / Manuel Durdurma]
-                  |
-                  v
-         [Veriyi AsyncStorage'a Yaz]
-                  |
-                  v
-         [İstatistikleri Güncelle]
+1. Kullanıcı çalışacağı kategoriyi ve süreyi seçip "Odaklan" butonuna basar.
+2. Sayaç geri saymaya başlar.
+3. Uygulama sürekli olarak kendi durumunu (AppState) kontrol eder.
+4. Eğer durum "Active" (Ekran açık) ise sorun yoktur.
+5. Eğer durum "Background" (Arka plan) olursa, sistem odaklanmanın bozulduğunu anlar ve kesinti sayacını 1 artırır.
+6. Süre bittiğinde, o seansın tarihi, süresi ve kaç kez kesintiye uğradığı veritabanına kaydedilir.
 
+## Kullanılan Teknolojiler
 
+Bu projeyi geliştirirken aşağıdaki kütüphane ve teknolojileri kullandım:
 
-3. Temel Fonksiyonlar ve Algoritmalar
+- React Native (Expo SDK 52): Geliştirme ortamı.
+- AsyncStorage: Verileri telefonda saklamak için.
+- AppState API: Uygulamanın arka plana geçişini yakalamak için.
+- React Native Chart Kit: Grafikleri çizdirmek için.
+- React Navigation: Sayfalar arası geçiş için.
 
-A. Odaklanma ve Kesinti Takibi
-Uygulama, AppState API'sini dinleyerek kullanıcının uygulamadan ayrıldığı anları (Instagram, WhatsApp vb. geçişleri) tespit eder.
+## Kurulum
 
-Algoritma: Sayaç aktifken AppState durumu active dışına çıkarsa (inactive/background), sistem bunu bir "odak kaybı" olarak işaretler ve kesinti sayacını (odakKesintisi) artırır.
+Projeyi kendi bilgisayarınızda çalıştırmak isterseniz sırasıyla şu komutları terminale girebilirsiniz:
 
-B. Veri Görselleştirme ve Analiz
-Kaydedilen ham veriler, Rapor Ekranı yüklendiğinde (useFocusEffect) işlenerek iki farklı grafik türüne dönüştürülür:
+1. Projeyi bilgisayarınıza indirin:
+git clone https://github.com/aGokceYavas/MobilUygulamaGelistirme.git
 
-Haftalık Analiz (Bar Chart): YYYY-MM-DD formatındaki tarih verisi parçalanarak (split) haftanın günlerine (Pzt-Paz) göre gruplanır (Aggregation).
+2. Proje klasörüne girin:
+cd odaklanma-takibi
 
-Kategori Dağılımı (Pie Chart): Kategorik veriler toplanarak oransal dağılım hesaplanır.
-
-C. Tarih Formatı Yönetimi
-Veritabanı tutarlılığı için tarihler arka planda ISO 8601 (YYYY-MM-DD) standardında saklanmaktadır. Kullanıcı arayüzünde (UI) ise bu veriler istemci tarafında işlenerek yerel formata (GG.AA.YYYY) dönüştürülür.
-
-4. Kurulum Yönergeleri
-Projeyi yerel ortamda çalıştırmak için aşağıdaki adımlar izlenmelidir:
-
-Gerekli bağımlılıkların yüklenmesi:
-
-Bash
-
+3. Gerekli paketleri yükleyin:
 npm install
-Uygulamanın başlatılması:
 
-Bash
-
+4. Uygulamayı başlatın:
 npx expo start
-5. Geliştirici Notları
-Manuel State Yönetimi: Proje ölçeği gereği Redux gibi harici kütüphaneler yerine, React'in kendi useState ve useEffect hook'ları ile performans optimizasyonu sağlanmıştır.
 
-Veri Temizliği: Geliştirme ve test süreçlerini kolaylaştırmak adına, rapor ekranına tüm AsyncStorage verisini temizleyen (Hard Reset) bir fonksiyon entegre edilmiştir.
+## Geliştirici Notu
+
+Bu uygulama, React Native öğrenme sürecimdeki bitirme projesidir. Veri yapısı ve algoritmalar tamamen cihaz üzerinde çalışacak şekilde optimize edilmiştir. İlerleyen aşamalarda bulut tabanlı yedekleme özelliği eklenmesi planlanmaktadır.
